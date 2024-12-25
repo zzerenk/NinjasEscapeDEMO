@@ -7,24 +7,27 @@ import Gamestate.Menu;
 import java.awt.Graphics;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 public class Game implements Runnable {
+    /* Runnable arayüzü implemente edilerek, run metodunun ayrı bir thread'de (iş parçacığında)
+    çalıştırılması sağlanır. Oyun döngüsünün ana thread'de değil, paralel bir başka thread'de
+    çalıştırılması oyun performansını arttırır. */
 
     private GamePanel gamePanel;
     private GameWindow gameWindow;
     private Thread gameThread;
-    private final int FPS_SET = 120;
-    private final int UPS_SET = 200;
-    private LocalDateTime levelStartTime;  // Seviyeye başlama zamanı
-    private int currentLevel = 1;  // Başlangıç seviyesi
-    private boolean isPlayerDead = false;  // Oyuncunun ölme durumu
-
     private Playing playing;
     private Menu menu;
 
+    /* Oyun ekranının saniyede 120 defa yeniden çizilmesini ve 200 defa güncellenmesini
+    istiyoruz. */
+    private final int FPS_SET = 120;
+    private final int UPS_SET = 200;
+
+
+
     /* Oyun penceresi boyutunu sabit tam sayılarla belirlemek yerine her bir karonun boyutunu
-    belirleyerek ve pencerede kaç karo istediğimizi belirterek buluyoruz. */
+    belirleyerek ve pencerede kaç karo istediğimizi belirterek buluyoruz.*/
     public final static int TILES_DEFAULT_SIZE = 32;
     public final static float SCALE = 2.0f;
     public final static int TILES_IN_WIDTH = 26;
@@ -44,24 +47,32 @@ public class Game implements Runnable {
     }
 
     private void initClasses() {
+
+        /* Menu sınıfından yeni bir nesne oluşturulur ve mevcut game nesnesini Menu sınıfının
+        kurucu metodunun parametresi olarak atar. Bu sayede Menu sınıfından Game sınıfının
+        özellik ve metotlarına erişilebilir. Aynı işlem Playing sınıfı için de yapılır.*/
         menu = new Menu(this);
         playing = new Playing(this);
     }
 
     private void startGameLoop() {
         gameThread = new Thread(this);
-        gameThread.start();
+        gameThread.start(); /* Bu nesne aracılığıyla Thread sınıfına ait start() metodu çağırılır.
+        Yeni bir thread başlatılır ve run() metodu bu thread içinde çalıştırılır. */
     }
 
     public void update() {
         switch (Gamestate.state) {
             case MENU:
+                /* Program menu görsellerini sadece oyun MENU durumundayken güncellemeli. */
                 menu.update();
                 break;
             case PLAYING:
                 /* Program oyuncuyu sadece oyun PLAYING durumundayken güncellemeli. */
                 playing.update();
                 break;
+                /* Programımızın son halinde Options menüsü bulunmamaktadır. Oyuncu ana menüde Options
+                seçeneğine tıkladığında oyundan çıkılacaktır. */
             case OPTIONS:
             case QUIT:
             default:
@@ -74,10 +85,11 @@ public class Game implements Runnable {
         switch (Gamestate.state) {
             case MENU:
                 menu.draw(g);
+                /* Program menu görsellerini sadece oyun MENU durumundayken çizmeli.*/
                 break;
             case PLAYING:
                 playing.draw(g);
-                /* Program oyuncuyu sadece oyun PLAYING durumundayken işlemeli.*/
+                /* Program oyuncuyu sadece oyun PLAYING durumundayken çizmeli.*/
                 break;
             default:
                 break;
@@ -85,12 +97,13 @@ public class Game implements Runnable {
     }
 
     public void run() {
-        // FPS ve UPS için gerekli süreyi hesaplıyoruz.
+        // Tek bir güncelleme ve tek bir frame için ayrılacak süreyi hesaplıyoruz.
         double timePerFrame = 1000000000.0 / FPS_SET;
         double timePerUpdate = 1000000000.0 / UPS_SET;
 
-        // Başlangıç zamanı (LocalDateTime) kullanıyoruz.
+        // LocalDateTime tipinden previousTime değişkenine değer olarak lastCheck zamanı atıyoruz.
         LocalDateTime previousTime = LocalDateTime.now();
+        // Bu anda henüz hiçbir çizim veya güncelleme yapılmamış.
         int frames = 0;
         int updates = 0;
         LocalDateTime lastCheck = LocalDateTime.now();  // FPS ve UPS sayacını kontrol etmek için
@@ -124,7 +137,7 @@ public class Game implements Runnable {
                 deltaFrames--;
             }
 
-            // Her saniye için FPS ve UPS bilgileri konsola yazdırılır.
+            // Her saniye için FPS ve UPS bilgilerini konsola yazdırıyoruz.
             if (Duration.between(lastCheck, LocalDateTime.now()).toMillis() >= 1000) {
                 lastCheck = LocalDateTime.now();
                 System.out.println("FPS: " + frames + " UPS: " + updates);
@@ -142,6 +155,9 @@ public class Game implements Runnable {
         }
     }
 
+    /* getMenu() metodu sayesinde, dış sınıflar Game sınıfının içindeki menu nesnesine
+    erişebilir ve bu nesne üzerinden menü ile ilgili işlemleri gerçekleştirebilir. Aynısı
+    getPlaying için de geçerlidir.*/
     public Menu getMenu() {
         return menu;
     }
